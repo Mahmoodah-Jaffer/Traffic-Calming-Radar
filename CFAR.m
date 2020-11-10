@@ -1,9 +1,7 @@
-function [SLD, row_det, column_det, counter, CFAR_T] = CFAR(S)
-    PFA = 1e-3;
-    %signal = S;
-    signal = 10.^(S./20);
-    SLD = abs(signal).^2; % Square Law Detector
-    %SLD = SLD1(:);
+function [SLD, row_det, column_det, counter, CFAR_T, row_detection2, col_detection2] = CFAR(S)
+    PFA = 1e-5;
+    signal = 10.^(S./20); %%convert from dB to linear unit
+    SLD = abs(signal).^2; % Square Law Detector - produces power of signal
   
     [row, column] = size(SLD);
     %NumDataPoints = row*column;
@@ -12,18 +10,22 @@ function [SLD, row_det, column_det, counter, CFAR_T] = CFAR(S)
     row_det = []; %detection positions in row
     column_det = []; %detection positions in column
     
+    row_detection(column).vector = []; 
+    col_detection = nan(1,column);
+    
     %% Parameters
     window = 12; %window size 32
     N = window*2; %Number of Reference Cells
     guard_cells = 6; %Guard cells - 3/4  2
     
     CFAR_T =  []; % intialise array for each CUT
-    counter = 0;
+    counter = 1;
+    counter2 = 1;
     
     %% Determine CFAR for each CUT
     %% Apply algorithm along each column in spectrogram
     for c = 1:column
-        
+        counter2 = 1;
         power = SLD(1:row,c); %Single column
         
         %No false alarm outside the window and guard cell region
@@ -37,9 +39,6 @@ function [SLD, row_det, column_det, counter, CFAR_T] = CFAR(S)
             
             %Calculate CA-CFAR Threshold
             %1. Calculate the interference statistic
-%             test = sum(lag_window)+ sum(lead_window);
-%             tester = sum(test);
-%             g_CA = (tester)./N;
             g_CA = (sum(lag_window)+ sum(lead_window))./N;
             %2. Calculate CFAR constant
             alpha_CA = N*(PFA^(-1/(N))-1);
@@ -51,24 +50,25 @@ function [SLD, row_det, column_det, counter, CFAR_T] = CFAR(S)
             if (threshold < CUT)
                 row_det = [row_det; r];
                 column_det = [column_det;c];
+                
+                row_detection(c).vector(counter2) = r;
+                col_detection(c) = c;
+                
                 counter = counter + 1;
+                counter2 = counter2 + 1;
             end 
 
         end
   
     end
     
-%% Plot r(CUT) and threshold - 100000*10e-3 = 100 false alarms
-% figure
-% plot(test(1:NumDataPoints), SLD(1:NumDataPoints),'color','r')
-% title('CUT and Threshold')
-% 
-% hold on
-% 
-% plot(test(1:NumDataPoints),CFAR_T(1:NumDataPoints),  'color','g')
-% 
-% hold off
-% grid on;
-% legend('Data', 'Threshold');
+    x = 1;
+    
+    for c = 1:column
+        row_detection1(c) = round(median(row_detection(c).vector));
+    end
+    
+    row_detection2 = row_detection1(~isnan(row_detection1))';
+    col_detection2 = col_detection(~isnan(col_detection))';
     
 end

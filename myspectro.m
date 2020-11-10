@@ -22,8 +22,8 @@ function [STFT, t, speed] = myspectro(y,Win,Overlap,FFT_size, fs, lambda, cpi, m
     for count = 0:nframes-1
         %windowing -- why does it need to be double precision for the
         %window to be applied?
-        yIndx = (1:FFT_size).' + (count)*floor(FFT_size/Overlap);
-        yw = double(y(yIndx)).* Win;
+        yIndx = ((1:FFT_size).' + (count)*floor(FFT_size/Overlap));
+        yw = double(y(yIndx)).*Win;
         
         %FFT -- only positive values therefore no fftshift
         Y = fft(yw, FFT_size);
